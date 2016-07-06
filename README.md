@@ -4,7 +4,7 @@ An audio visualizer using React and D3.
 
 ### See it in action:
 
-[Check it out here](https://codepen.io/snackthyme/pen/VjzjrJ)
+[Check it out here](boddez.me/d3-audio-viz.html)
 
 ### To run it yourself:
 
