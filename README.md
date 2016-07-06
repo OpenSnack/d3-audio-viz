@@ -2,6 +2,10 @@
 
 An audio visualizer using React and D3.
 
-### To run it:
+### See it in action:
+
+[Check it out here](https://codepen.io/snackthyme/pen/VjzjrJ)
+
+### To run it yourself:
 
 Set up a simple fileserver (python, ruby, PHP, etc.),  point your browser to it and go to town.
