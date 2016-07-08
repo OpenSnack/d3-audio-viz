@@ -1,6 +1,6 @@
 var Chooser = React.createClass({
     render: function() {
-        return <input type="file" id="audioFile" style={{color: 'white'}}></input>;
+        return <input type="file" id="audioFile" style={{color: 'rgb(61, 60, 58)'}}></input>;
     }
 });
 
@@ -8,6 +8,8 @@ ReactDOM.render(
     <Chooser />,
     document.getElementById('chooser')
 );
+
+var chooserHeight = d3.select('#chooser').node().getBoundingClientRect().height;
 
 window.audioContext = window.AudioContext || window.webkitAudioContext ||
                         window.mozAudioContext || window.msAudioContext;
@@ -88,6 +90,12 @@ function AudioSource(buffer) {
 }
 
 input.on('change', function () {
+    parse_audio_metadata(input.node().files[0], function(data) {
+        d3.select('#title').text(data.title);
+        d3.select('#artist').text(data.artist);
+        d3.select('#album').text(data.album);
+    });
+
     var fr = new FileReader();
     fr.onload = function (e) {
         audioContext.decodeAudioData(e.target.result, function (buffer) {
@@ -110,8 +118,8 @@ input.on('change', function () {
 var Chart = React.createClass({
     render: function() {
         return (
-            <svg width={d3.select('body').node().getBoundingClientRect().width}
-                height={d3.select('body').node().getBoundingClientRect().height}>{this.props.children}</svg>
+            <svg width={this.props.width}
+                height={this.props.height}>{this.props.children}</svg>
         );
     }
 });
@@ -204,7 +212,7 @@ var Visualizer = React.createClass({
 function draw(freqArray) {
     ReactDOM.render(
         <Visualizer data={freqArray} width={d3.select('body').node().getBoundingClientRect().width}
-            height={d3.select('body').node().getBoundingClientRect().height}
+            height={d3.select('body').node().getBoundingClientRect().height * 0.8}
             highColour={highColour} lowColour={lowColour} />,
         document.getElementById('visualizer')
     );

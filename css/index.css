@@ -4,6 +4,33 @@ html, body {
     margin: 0;
 }
 
+#chooser {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+#metadata {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    text-align: right;
+    font-family: Lato;
+    font-size: 24px;
+    color: white;
+}
+
+#visualizer {
+    position: relative;
+    height: 100%;
+}
+
+#visualizer svg {
+    position: absolute;
+    bottom: 0;
+}
+
 rect.bar {
     shape-rendering: crispEdges;
 }
