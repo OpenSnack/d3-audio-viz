@@ -3,3 +3,7 @@ html, body {
     height: 100%;
     margin: 0;
 }
+
+rect.bar {
+    shape-rendering: crispEdges;
+}

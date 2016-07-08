@@ -127,7 +127,8 @@ var Bar = React.createClass({
 
     render: function() {
         return (
-            <rect fill={this.props.fill}
+            <rect className={"bar"}
+                fill={this.props.fill}
                 width={this.props.width}
                 height={this.props.height}
                 x={this.props.x}
