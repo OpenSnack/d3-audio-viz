@@ -16,12 +16,6 @@ var audioContext = new AudioContext();
 var input = d3.select('#audioFile');
 var visualizer = d3.select('#visualizer');
 var currentSource;
-var width = 800;
-var height = 500;
-// var bottomOpacity = 1;
-// var topOpacity = 0.7;
-// var bottomColour = 'lime';
-// var topColour = 'red';
 var highColour = 'rgb(149,101,196)';
 var lowColour = 'rgb(109,58,171)';
 
@@ -116,7 +110,8 @@ input.on('change', function () {
 var Chart = React.createClass({
     render: function() {
         return (
-            <svg width={this.props.width} height={this.props.height}>{this.props.children}</svg>
+            <svg width={d3.select('body').node().getBoundingClientRect().width}
+                height={d3.select('body').node().getBoundingClientRect().height}>{this.props.children}</svg>
         );
     }
 });
@@ -157,15 +152,15 @@ var FreqSeries = React.createClass({
 
         var xScale = d3.scale.ordinal()
             .domain(d3.range(this.props.data.length))
-            .rangeRoundBands([0, this.props.width], 0.05);
+            .rangeBands([0, this.props.width], 0);
 
         var colourScale = d3.scale.linear()
             .domain([0, 255])
             .range([this.props.lowColour, this.props.highColour]);
 
+        console.log(xScale.rangeBand());
+
         var bars = this.props.data.map(function(d, i) {
-            // return <Bar height={yScale(d)} width={xScale.rangeBand()} x={xScale(i)}
-            //         chartHeight={props.height} fill={'url(#gradient' + i + ')'} key={i} />;
             return <Bar height={yScale(d)} width={xScale.rangeBand()} x={xScale(i)}
                 chartHeight={props.height} fill={colourScale(d)} key={i} />;
         });
@@ -196,10 +191,6 @@ var Gradient = React.createClass({
     }
 });
 
-// <Gradient data={this.props.data} bottomOpacity={this.props.bottomOpacity}
-//     topOpacity={this.props.topOpacity} bottomColour={this.props.bottomColour}
-//     topColour={this.props.topColour} />
-
 var Visualizer = React.createClass({
     render: function() {
         return (
@@ -211,12 +202,11 @@ var Visualizer = React.createClass({
     }
 });
 
-// <Visualizer data={freqArray} width={width} height={height} bottomOpacity={bottomOpacity}
-//     topOpacity={topOpacity} bottomColour={bottomColour} topColour={topColour} />,
-
 function draw(freqArray) {
     ReactDOM.render(
-        <Visualizer data={freqArray} width={width} height={height} highColour={highColour} lowColour={lowColour} />,
+        <Visualizer data={freqArray} width={d3.select('body').node().getBoundingClientRect().width}
+            height={d3.select('body').node().getBoundingClientRect().height}
+            highColour={highColour} lowColour={lowColour} />,
         document.getElementById('visualizer')
     );
 }
