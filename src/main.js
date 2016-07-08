@@ -158,8 +158,6 @@ var FreqSeries = React.createClass({
             .domain([0, 255])
             .range([this.props.lowColour, this.props.highColour]);
 
-        console.log(xScale.rangeBand());
-
         var bars = this.props.data.map(function(d, i) {
             return <Bar height={yScale(d)} width={xScale.rangeBand()} x={xScale(i)}
                 chartHeight={props.height} fill={colourScale(d)} key={i} />;
