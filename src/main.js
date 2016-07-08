@@ -1,6 +1,6 @@
 var Chooser = React.createClass({
     render: function() {
-        return <input type="file" id="audioFile"></input>;
+        return <input type="file" id="audioFile" style={{color: 'white'}}></input>;
     }
 });
 
@@ -18,14 +18,24 @@ var visualizer = d3.select('#visualizer');
 var currentSource;
 var width = 800;
 var height = 500;
+// var bottomOpacity = 1;
+// var topOpacity = 0.7;
+// var bottomColour = 'lime';
+// var topColour = 'red';
+var highColour = 'rgb(149,101,196)';
+var lowColour = 'rgb(109,58,171)';
+
+d3.select('body').style('background-color', 'rgb(61, 60, 58)');
+
+var freqBins = [0, 8, 10, 12, 14, 16, 19, 23, 27, 32, 37, 44, 51, 61, 71, 83, 97,
+                114, 134, 157, 185, 222, 259, 296, 352, 408, 482, 556, 649, 761,
+                891, 1039, 1225, 1429, 1671, 2042, 2228, 2600, 3157, 3714, 4272];
 
 function AudioSource(buffer) {
     var playing = false;
     var audioSource = this;
 
-    this.freqBins = [0, 8, 10, 12, 14, 16, 19, 23, 27, 32, 37, 44, 51, 61, 71, 83, 97,
-                    114, 134, 157, 185, 222, 259, 296, 352, 408, 482, 556, 649, 761,
-                    891, 1039, 1225, 1429, 1671, 2042, 2228, 2600, 3157, 3714, 4272];
+    this.freqBins = freqBins;
     this.bufferSource = audioContext.createBufferSource();
     this.analyser = audioContext.createAnalyser();
     this.bufferSource.connect(this.analyser);
@@ -122,7 +132,7 @@ var Bar = React.createClass({
 
     render: function() {
         return (
-            <rect fill={this.props.colour}
+            <rect fill={this.props.fill}
                 width={this.props.width}
                 height={this.props.height}
                 x={this.props.x}
@@ -149,9 +159,15 @@ var FreqSeries = React.createClass({
             .domain(d3.range(this.props.data.length))
             .rangeRoundBands([0, this.props.width], 0.05);
 
+        var colourScale = d3.scale.linear()
+            .domain([0, 255])
+            .range([this.props.lowColour, this.props.highColour]);
+
         var bars = this.props.data.map(function(d, i) {
+            // return <Bar height={yScale(d)} width={xScale.rangeBand()} x={xScale(i)}
+            //         chartHeight={props.height} fill={'url(#gradient' + i + ')'} key={i} />;
             return <Bar height={yScale(d)} width={xScale.rangeBand()} x={xScale(i)}
-                    chartHeight={props.height} colour={props.colour} key={i} />;
+                chartHeight={props.height} fill={colourScale(d)} key={i} />;
         });
 
         return (
@@ -160,19 +176,47 @@ var FreqSeries = React.createClass({
     }
 });
 
+var Gradient = React.createClass({
+    render: function() {
+        var props = this.props;
+        var gradients = this.props.data.map(function(d, i) {
+            return (
+                <linearGradient className={"barGradient"} id={"gradient" + i} gradientUnits={"userSpaceOnUse"}
+                    x1={"0"} x2={"0"} y1={d3.select('#visualizer').node().getBoundingClientRect().top}
+                    y2={d3.select('#visualizer').node().getBoundingClientRect().top + height} key={i}>
+                    <stop offset={"0"} stopColor={props.topColour} stopOpacity={props.topOpacity} />
+                    <stop offset={"1"} stopColor={props.bottomColour} stopOpacity={props.bottomOpacity} />
+                </linearGradient>
+            );
+        });
+
+        return (
+            <defs>{gradients}</defs>
+        );
+    }
+});
+
+// <Gradient data={this.props.data} bottomOpacity={this.props.bottomOpacity}
+//     topOpacity={this.props.topOpacity} bottomColour={this.props.bottomColour}
+//     topColour={this.props.topColour} />
+
 var Visualizer = React.createClass({
     render: function() {
         return (
             <Chart width={this.props.width} height={this.props.height}>
-                <FreqSeries data={this.props.data} width={this.props.width} height={this.props.height} />
+                <FreqSeries data={this.props.data} width={this.props.width} height={this.props.height}
+                    highColour={this.props.highColour} lowColour={this.props.lowColour} />
             </Chart>
         );
     }
 });
 
+// <Visualizer data={freqArray} width={width} height={height} bottomOpacity={bottomOpacity}
+//     topOpacity={topOpacity} bottomColour={bottomColour} topColour={topColour} />,
+
 function draw(freqArray) {
     ReactDOM.render(
-        <Visualizer data={freqArray} width={width} height={height} />,
+        <Visualizer data={freqArray} width={width} height={height} highColour={highColour} lowColour={lowColour} />,
         document.getElementById('visualizer')
     );
 }
