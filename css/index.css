@@ -13,12 +13,16 @@ html, body {
 
 #metadata {
     position: fixed;
-    bottom: 0;
-    right: 0;
+    bottom: 20px;
+    right: 20px;
     text-align: right;
     font-family: Lato;
     font-size: 24px;
     color: white;
+}
+
+#time {
+    display: none;
 }
 
 #visualizer {

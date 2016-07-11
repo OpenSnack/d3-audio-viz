@@ -1,6 +1,6 @@
 var Chooser = React.createClass({
     render: function() {
-        return <input type="file" id="audioFile" style={{color: 'rgb(61, 60, 58)'}}></input>;
+        return <input type="file" id="audioFile" accept="audio/*" style={{color: 'rgb(61, 60, 58)'}}></input>;
     }
 });
 
@@ -30,6 +30,7 @@ var freqBins = [0, 8, 10, 12, 14, 16, 19, 23, 27, 32, 37, 44, 51, 61, 71, 83, 97
 function AudioSource(buffer) {
     var playing = false;
     var audioSource = this;
+    var startTime;
 
     this.freqBins = freqBins;
     this.bufferSource = audioContext.createBufferSource();
@@ -48,8 +49,17 @@ function AudioSource(buffer) {
         return playing;
     };
 
+    this.getDuration = function() {
+        return this.bufferSource.buffer.duration;
+    };
+
+    this.getStartTime = function() {
+        return startTime;
+    };
+
     this.play = function(buffer) {
         this.bufferSource.start(0);
+        startTime = Date.now();
         currentSource = this;
         playing = true;
         this.getFreqArray();
@@ -80,25 +90,34 @@ function AudioSource(buffer) {
 
     this.stop = function() {
         this.bufferSource.stop(0);
+        d3.select('#currentTime').text("--:--");
     };
 
     this.end = function() {
         playing = false;
         var arr = new Uint8Array(this.analyser.frequencyBinCount);
-        draw(arr);
+        draw(arr, true);
     };
 }
 
-input.on('change', function () {
-    parse_audio_metadata(input.node().files[0], function(data) {
-        d3.select('#title').text(data.title);
-        d3.select('#artist').text(data.artist);
-        d3.select('#album').text(data.album);
-    });
+function secondsFormat(seconds) {
+    return Math.floor(seconds / 60) + ":" + d3.format("02d")(Math.floor(seconds % 60));
+}
 
+input.on('change', function () {
     var fr = new FileReader();
     fr.onload = function (e) {
         audioContext.decodeAudioData(e.target.result, function (buffer) {
+
+            // Get metadata and fill in the divs
+            parse_audio_metadata(input.node().files[0], function(data) {
+                d3.select('#title').text(data.title);
+                d3.select('#artist').text(data.artist);
+                d3.select('#album').text(data.album);
+            });
+            d3.selectAll('#time, #currentTime, #totalTime').style('display', 'inline');
+            d3.select('#totalTime').text(secondsFormat(buffer.duration));
+
             var audioSource = new AudioSource(buffer);
             if (currentSource !== undefined && currentSource.isPlaying()) {
                 currentSource.bufferSource.onended = function() {
@@ -209,11 +228,13 @@ var Visualizer = React.createClass({
     }
 });
 
-function draw(freqArray) {
+function draw(freqArray, isEnding) {
     ReactDOM.render(
         <Visualizer data={freqArray} width={d3.select('body').node().getBoundingClientRect().width}
-            height={d3.select('body').node().getBoundingClientRect().height * 0.8}
+            height={d3.select('body').node().getBoundingClientRect().height}
             highColour={highColour} lowColour={lowColour} />,
         document.getElementById('visualizer')
     );
+    d3.select('#currentTime').text(isEnding ? "--:--" :
+                                secondsFormat((Date.now() - currentSource.getStartTime()) / 1000));
 }
