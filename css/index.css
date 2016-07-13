@@ -4,37 +4,64 @@ html, body {
     margin: 0;
 }
 
-#chooser {
-    position: fixed;
+.noselect {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+#topPanel {
+    position: absolute;
     top: 0;
     left: 0;
-    z-index: 1;
+    height: 15%;
+    width: 100%;
+}
+
+#chooser {
+    display: inline-block;
+    height: 100%;
+    vertical-align: top;
+}
+
+#volume {
+    display: inline-block;
+    float: right;
+}
+
+#currentVolume {
+    pointer-events: none;
+}
+
+#visualizer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+}
+
+#visualizer svg {
+    display: block;
+}
+
+rect.bar {
+    shape-rendering: crispEdges;
 }
 
 #metadata {
+    pointer-events: none;
+    cursor: default;
     position: fixed;
     bottom: 20px;
     right: 20px;
     text-align: right;
     font-family: Lato;
-    font-size: 24px;
+    font-size: 30px;
     color: white;
 }
 
 #time {
     display: none;
-}
-
-#visualizer {
-    position: relative;
-    height: 100%;
-}
-
-#visualizer svg {
-    position: absolute;
-    bottom: 0;
-}
-
-rect.bar {
-    shape-rendering: crispEdges;
 }

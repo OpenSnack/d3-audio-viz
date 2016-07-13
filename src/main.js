@@ -1,6 +1,55 @@
+var globalVolume = 1;
+var currentSource;
+
 var Chooser = React.createClass({
     render: function() {
-        return <input type="file" id="audioFile" accept="audio/*" style={{color: 'rgb(61, 60, 58)'}}></input>;
+        return (<div id="chooser">
+                    <input type="file" id="audioFile" accept="audio/*" style={{color: 'rgb(61, 60, 58)'}}></input>
+                </div>);
+    }
+});
+
+var Volume = React.createClass({
+    getInitialState: function() {
+        return {mouseIsDown: false};
+    },
+
+    setVolume: function(e) {
+        var newWidth = e.pageX - d3.select('#volumeClick').node().getBoundingClientRect().left;
+        globalVolume = newWidth / e.target.getBoundingClientRect().width;
+        if (currentSource) {
+            currentSource.setGain(globalVolume);
+            if (!currentSource.isPlaying()) {
+                renderVolume();
+            }
+        } else {
+            renderVolume();
+        }
+    },
+
+    mouseDown: function(e) {
+        this.state.mouseIsDown = true;
+        this.setVolume(e);
+    },
+
+    mouseMove: function(e) {
+        if (this.state.mouseIsDown) {
+            this.setVolume(e);
+        }
+    },
+
+    mouseUp: function(e) {
+        this.state.mouseIsDown = false;
+    },
+
+    render: function() {
+        return (<svg width={this.props.width} height={this.props.height}>
+                    <rect onMouseDown={this.mouseDown} onMouseMove={this.mouseMove} onMouseLeave={this.mouseUp}
+                        onMouseUp={this.mouseUp} x={0} y={0} fill={'black'} id={'volumeClick'}
+                        width={this.props.width} height={this.props.height / 8}></rect>
+                    <rect x={0} y={0} fill={'white'} id={'currentVolume'}
+                        width={this.props.currentWidth} height={this.props.height / 8}></rect>
+                </svg>);
     }
 });
 
@@ -9,7 +58,18 @@ ReactDOM.render(
     document.getElementById('chooser')
 );
 
-var chooserHeight = d3.select('#chooser').node().getBoundingClientRect().height;
+function renderVolume() {
+    var controlsRect = d3.select('#topPanel').node().getBoundingClientRect();
+    ReactDOM.render(
+        <Volume width={controlsRect.width / 2} currentWidth={(controlsRect.width / 2) * globalVolume}
+            height={controlsRect.height} />,
+        document.getElementById('volume')
+    );
+}
+
+window.onresize = renderVolume;
+
+renderVolume();
 
 window.audioContext = window.AudioContext || window.webkitAudioContext ||
                         window.mozAudioContext || window.msAudioContext;
@@ -17,7 +77,6 @@ window.audioContext = window.AudioContext || window.webkitAudioContext ||
 var audioContext = new AudioContext();
 var input = d3.select('#audioFile');
 var visualizer = d3.select('#visualizer');
-var currentSource;
 var highColour = 'rgb(149,101,196)';
 var lowColour = 'rgb(109,58,171)';
 
@@ -35,8 +94,10 @@ function AudioSource(buffer) {
     this.freqBins = freqBins;
     this.bufferSource = audioContext.createBufferSource();
     this.analyser = audioContext.createAnalyser();
+    this.gainNode = audioContext.createGain();
     this.bufferSource.connect(this.analyser);
-    this.analyser.connect(audioContext.destination);
+    this.analyser.connect(this.gainNode);
+    this.gainNode.connect(audioContext.destination);
     this.analyser.fftSize = 16384;
     this.analyser.smoothingTimeConstant = 0;
     this.bufferSource.buffer = buffer;
@@ -57,7 +118,12 @@ function AudioSource(buffer) {
         return startTime;
     };
 
+    this.setGain = function(gain) {
+        this.gainNode.gain.value = Math.min(Math.max(0, gain), 1);
+    };
+
     this.play = function(buffer) {
+        this.setGain(globalVolume);
         this.bufferSource.start(0);
         startTime = Date.now();
         currentSource = this;
@@ -231,10 +297,13 @@ var Visualizer = React.createClass({
 function draw(freqArray, isEnding) {
     ReactDOM.render(
         <Visualizer data={freqArray} width={d3.select('body').node().getBoundingClientRect().width}
-            height={d3.select('body').node().getBoundingClientRect().height}
+            height={d3.select('body').node().getBoundingClientRect().height * 0.85}
             highColour={highColour} lowColour={lowColour} />,
         document.getElementById('visualizer')
     );
+
+    renderVolume();
+
     d3.select('#currentTime').text(isEnding ? "--:--" :
                                 secondsFormat((Date.now() - currentSource.getStartTime()) / 1000));
 }
