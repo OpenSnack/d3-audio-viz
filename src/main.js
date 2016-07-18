@@ -1,18 +1,43 @@
 var globalVolume = 1;
 var currentSource;
+var mouseIsDown = false;
+var clickingVolume = false;
+
+d3.select(document).on('mouseout', function() {
+    if (d3.event.relatedTarget === null || d3.event.toElement === null) {
+        mouseIsDown = false;
+        clickingVolume = false;
+    }
+});
+
+d3.select('#topPanel').on('mouseup', function() { mouseIsDown = false; clickingVolume = false; });
+
+var highColour = 'rgb(149,101,196)';
+var lowColour = 'rgb(109,58,171)';
+var eqColour = 'rgb(86,101,199)';
 
 var Chooser = React.createClass({
     render: function() {
-        return (<div id="chooser">
-                    <input type="file" id="audioFile" accept="audio/*" style={{color: 'rgb(61, 60, 58)'}}></input>
+        return (<div id="uploadButton">
+                    <label htmlFor="audioFile">Choose a song</label>
+                    <input type="file" id="audioFile" accept="audio/*" />
                 </div>);
     }
 });
 
-var Volume = React.createClass({
-    getInitialState: function() {
-        return {mouseIsDown: false};
+var ResetEQ = React.createClass({
+    buttonClick: function() {
+        if (currentSource) {
+            currentSource.resetEQ();
+        }
     },
+
+    render: function() {
+        return <div onClick={this.buttonClick} id="resetEQButton">Reset EQ</div>;
+    }
+});
+
+var Volume = React.createClass({
 
     setVolume: function(e) {
         var newWidth = e.pageX - d3.select('#volumeClick').node().getBoundingClientRect().left;
@@ -28,27 +53,31 @@ var Volume = React.createClass({
     },
 
     mouseDown: function(e) {
-        this.state.mouseIsDown = true;
+        mouseIsDown = true;
+        clickingVolume = true;
         this.setVolume(e);
     },
 
     mouseMove: function(e) {
-        if (this.state.mouseIsDown) {
+        if (mouseIsDown && clickingVolume) {
             this.setVolume(e);
         }
     },
 
     mouseUp: function(e) {
-        this.state.mouseIsDown = false;
+        mouseIsDown = false;
+        clickingVolume = false;
     },
 
     render: function() {
         return (<svg width={this.props.width} height={this.props.height}>
-                    <rect onMouseDown={this.mouseDown} onMouseMove={this.mouseMove} onMouseLeave={this.mouseUp}
+                    <rect onMouseDown={this.mouseDown} onMouseMove={this.mouseMove} onMouseUp={this.mouseUp}
                         onMouseUp={this.mouseUp} x={0} y={0} fill={'black'} id={'volumeClick'}
-                        width={this.props.width} height={this.props.height / 8}></rect>
-                    <rect x={0} y={0} fill={'white'} id={'currentVolume'}
-                        width={this.props.currentWidth} height={this.props.height / 8}></rect>
+                        width={this.props.width} height={this.props.height} />
+                    <rect x={0} y={0} fill={this.props.fill} id={'currentVolume'}
+                        width={this.props.currentWidth} height={this.props.height} />
+                    <text className={'volumeLeft'} x={'10'} y={this.props.height / 2}>0</text>
+                    <text className={'volumeRight'} x={this.props.width - 10} y={this.props.height / 2}>100</text>
                 </svg>);
     }
 });
@@ -58,11 +87,16 @@ ReactDOM.render(
     document.getElementById('chooser')
 );
 
+ReactDOM.render(
+    <ResetEQ />,
+    document.getElementById('resetEQ')
+);
+
 function renderVolume() {
     var controlsRect = d3.select('#topPanel').node().getBoundingClientRect();
     ReactDOM.render(
         <Volume width={controlsRect.width / 2} currentWidth={(controlsRect.width / 2) * globalVolume}
-            height={controlsRect.height} />,
+            height={controlsRect.height} fill={highColour} />,
         document.getElementById('volume')
     );
 }
@@ -77,14 +111,24 @@ window.audioContext = window.AudioContext || window.webkitAudioContext ||
 var audioContext = new AudioContext();
 var input = d3.select('#audioFile');
 var visualizer = d3.select('#visualizer');
-var highColour = 'rgb(149,101,196)';
-var lowColour = 'rgb(109,58,171)';
 
 d3.select('body').style('background-color', 'rgb(61, 60, 58)');
 
-var freqBins = [0, 8, 10, 12, 14, 16, 19, 23, 27, 32, 37, 44, 51, 61, 71, 83, 97,
-                114, 134, 157, 185, 222, 259, 296, 352, 408, 482, 556, 649, 761,
-                891, 1039, 1225, 1429, 1671, 2042, 2228, 2600, 3157, 3714, 4272];
+var centerFreqs = [53.8, 64.6, 75.4, 88.8, 102.3, 118.4, 140, 164.2, 191.1, 223.4, 261.1,
+                    306.8, 360.7, 419.9, 492.6, 576, 672.9, 788.7, 923.2, 1079.4, 1262.4, 1477.7,
+                    1728, 2021.4, 2366, 2769.7, 3240.7, 3792.5, 4438.5, 5192.2, 6077.7, 7114,
+                    8322.6, 9738.4, 11396.4, 13337.1, 15608.9, 18265.5, 21374.4];
+
+var qFactors = [5, 6, 7, 5.5, 9.5, 5.5, 6.5, 6.1, 7.1, 5.9, 6.9, 5.7, 6.7, 6.5,
+                6.1, 6.7, 6.3, 6.4, 6.4, 6.5, 6.3, 6.4, 6.4, 6.4, 6.4, 6.4, 6.4,
+                6.3, 6.4, 6.4, 6.3, 6.4, 6.4, 6.4, 6.4, 6.4, 6.4, 6.4, 6.4];
+
+var freqBins = [8, 10, 12, 14, 17, 19, 23, 27, 32, 37, 44, 51, 61, 71, 83, 98, 114,
+                134, 157, 184, 215, 252, 295, 345, 404, 473, 554, 648, 759, 888,
+                1039, 1217, 1424, 1666, 1950, 2282, 2671, 3126, 3658, 4095];
+
+var lowShelfFreq = 48.5;
+var highShelfFreq = 23051.3;
 
 function AudioSource(buffer) {
     var playing = false;
@@ -95,11 +139,38 @@ function AudioSource(buffer) {
     this.bufferSource = audioContext.createBufferSource();
     this.analyser = audioContext.createAnalyser();
     this.gainNode = audioContext.createGain();
-    this.bufferSource.connect(this.analyser);
-    this.analyser.connect(this.gainNode);
-    this.gainNode.connect(audioContext.destination);
-    this.analyser.fftSize = 16384;
+    this.bufferSource.connect(this.gainNode);
+
+    this.eqNodes = [];
+
+    var lowshelf = audioContext.createBiquadFilter();
+    lowshelf.type = 'lowshelf'; // surprise!
+    lowshelf.frequency.value = lowShelfFreq;
+    this.eqNodes.push(lowshelf);
+    this.gainNode.connect(lowshelf);
+
+    var chainLink = lowshelf;
+    for (var f = 0; f < centerFreqs.length; f++) {
+        var eq = audioContext.createBiquadFilter();
+        eq.type = 'peaking';
+        eq.frequency.value = centerFreqs[f];
+        eq.Q.value = qFactors[f];
+        this.eqNodes.push(eq);
+        chainLink.connect(eq);
+        chainLink = eq;
+    }
+
+    var highshelf = audioContext.createBiquadFilter();
+    highshelf.type = 'highshelf';
+    highshelf.frequency.value = highShelfFreq;
+    this.eqNodes.push(highshelf);
+    chainLink.connect(highshelf);
+
+    highshelf.connect(this.analyser);
+    this.analyser.connect(audioContext.destination);
+    this.analyser.fftSize = 8192;
     this.analyser.smoothingTimeConstant = 0;
+    this.analyser.maxDecibels = -10;
     this.bufferSource.buffer = buffer;
 
     this.bufferSource.onended = function() {
@@ -120,6 +191,12 @@ function AudioSource(buffer) {
 
     this.setGain = function(gain) {
         this.gainNode.gain.value = Math.min(Math.max(0, gain), 1);
+    };
+
+    this.resetEQ = function() {
+        this.eqNodes.forEach(function(eq) {
+            eq.gain.value = 0;
+        });
     };
 
     this.play = function(buffer) {
@@ -230,6 +307,56 @@ var Bar = React.createClass({
     }
 });
 
+var EqualizerBar = React.createClass({
+    getInitialState: function() {
+        var yScale = d3.scale.linear()
+            .domain([-20, 20])
+            .range([this.props.height, 0]);
+
+        return {yScale: yScale};
+    },
+
+    setFilter: function(e) {
+        this.props.eq.gain.value =
+            this.state.yScale.invert(e.pageY - this.props.height / 150 -
+                d3.select('#visualizer').node().getBoundingClientRect().top);
+    },
+
+    mouseDown: function(e) {
+        mouseIsDown = true;
+        this.setFilter(e);
+    },
+
+    mouseMove: function(e) {
+        if (mouseIsDown && !clickingVolume) {
+            this.setFilter(e);
+        }
+    },
+
+    mouseUp: function(e) {
+        mouseIsDown = false;
+    },
+
+    render: function() {
+
+        return (<g>
+                    <rect className={"equalizerRect"}
+                        fill={this.props.fill}
+                        width={this.props.width}
+                        height={this.props.height / 75}
+                        x={this.props.x}
+                        y={this.state.yScale(this.props.eq.gain.value)} />
+                    <rect className={"equalizerClick"} onMouseDown={this.mouseDown}
+                        onMouseMove={this.mouseMove} onMouseUp={this.mouseUp}
+                        fill={"none"}
+                        width={this.props.width}
+                        height={this.props.height}
+                        x={this.props.x}
+                        y={this.props.chartHeight - this.props.height} />
+                </g>);
+    }
+});
+
 var FreqSeries = React.createClass({
     defaultProps: function() {
         return {
@@ -253,8 +380,14 @@ var FreqSeries = React.createClass({
             .range([this.props.lowColour, this.props.highColour]);
 
         var bars = this.props.data.map(function(d, i) {
-            return <Bar height={yScale(d)} width={xScale.rangeBand()} x={xScale(i)}
-                chartHeight={props.height} fill={colourScale(d)} key={i} />;
+            return (
+                <g key={i}>
+                    <Bar height={yScale(d)} width={xScale.rangeBand()} x={xScale(i)}
+                    chartHeight={props.height} fill={colourScale(d)} />
+                    <EqualizerBar height={props.height} width={xScale.rangeBand()} x={xScale(i)}
+                    chartHeight={props.height} fill={props.eqColour} eq={currentSource.eqNodes[i]} />
+                </g>
+            );
         });
 
         return (
@@ -288,7 +421,8 @@ var Visualizer = React.createClass({
         return (
             <Chart width={this.props.width} height={this.props.height}>
                 <FreqSeries data={this.props.data} width={this.props.width} height={this.props.height}
-                    highColour={this.props.highColour} lowColour={this.props.lowColour} />
+                    highColour={this.props.highColour} lowColour={this.props.lowColour}
+                    eqColour={this.props.eqColour} />
             </Chart>
         );
     }
@@ -297,8 +431,9 @@ var Visualizer = React.createClass({
 function draw(freqArray, isEnding) {
     ReactDOM.render(
         <Visualizer data={freqArray} width={d3.select('body').node().getBoundingClientRect().width}
-            height={d3.select('body').node().getBoundingClientRect().height * 0.85}
-            highColour={highColour} lowColour={lowColour} />,
+            height={d3.select('body').node().getBoundingClientRect().height -
+                    d3.select('#topPanel').node().getBoundingClientRect().height}
+            highColour={highColour} lowColour={lowColour} eqColour={eqColour} />,
         document.getElementById('visualizer')
     );
 

@@ -13,23 +13,76 @@ html, body {
     user-select: none;
 }
 
+input {
+    display: none;
+}
+
 #topPanel {
     position: absolute;
     top: 0;
     left: 0;
-    height: 15%;
+    min-height: 40px;
+    height: 5%;
     width: 100%;
 }
 
-#chooser {
-    display: inline-block;
+#chooser, #resetEQ {
+    display: flex;
     height: 100%;
     vertical-align: top;
+    float: left;
+    clear: none;
+}
+
+#uploadButton, #resetEQ {
+    display: flex;
+    justify-content: center;
+    cursor: pointer;
+}
+
+#chooser label, #resetEQButton {
+    align-self: center;
+    padding: 0 10px;
+    font-family: Lato;
+    font-size: 20px;
+    line-height: 19px;
+    color: white;
+    cursor: pointer;
+}
+
+#chooser:hover, #resetEQ:hover {
+    background-color: rgb(149,101,196);
+}
+
+#chooser:active, #resetEQ:active {
+    background-color: rgb(109,58,171);
+}
+
+#resetEQButton {
+    border: none;
 }
 
 #volume {
     display: inline-block;
     float: right;
+    cursor: default !important;
+}
+
+#volume svg {
+    cursor: pointer;
+}
+
+#volume svg text {
+    dominant-baseline: middle;
+    pointer-events: none;
+    font-family: Lato;
+    font-size: 20px;
+    opacity: 0.2;
+    fill: white;
+}
+
+.volumeRight {
+    text-anchor: end;
 }
 
 #currentVolume {
@@ -44,6 +97,16 @@ html, body {
 
 #visualizer svg {
     display: block;
+    pointer-events: none;
+}
+
+#visualizer svg * {
+    pointer-events: all;
+}
+
+rect.equalizerRect {
+    shape-rendering: crispEdges;
+    opacity: 0.5;
 }
 
 rect.bar {
